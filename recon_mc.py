@@ -24,23 +24,41 @@ deldown = -20
 cs_falg =  0
 rc_flag =  1
 
-#================== ======================
-# read run info 
-# ================ =======================
+# =======================================
+#          read run info 
+# =======================================
 print ("We need run info" )
 
-target     = int(input(" Which target id you want to put? "))
-beamEnergy = float(input(" What is your beam energy 10.602? "))
-hsec       = float(input(" What is your Spectrometer Momentum in GeV/C? "))
-hsec       = round(hsec - 0.017 * hsec, 3)
-thetac     = float(input(" What is your Spectrometer angle? " ))
+targetName = input ("Enter the target name: ")
 
+tar_name_id ={'carbon': 4,
+              'ld2'   : 15,
+              'lh2'   : 11}
+
+target = tar_name_id[targetName]
+
+#print (target)
+
+#print (type(target))
+
+
+#target     = int(input(" Which target id you want to put? "))
+#beamEnergy = float(input(" What is your beam energy 10.602? "))
+
+
+
+beamEnergy = 10.602
+pcen       = float(input(" What is your Spectrometer Momentum in GeV/C? "))
+hsec       = round(pcen - 0.017 * pcen, 3) # spectrometer off by 1.7% source Abel ???
+#thetac     = float(input(" What is your Spectrometer angle? " ))
+thetac     = 21.0
 #print (hsec)
 bmcur1 = bmcur2 = bcm1charge = bcm2charge = cltime = eltime = trackeff = trigeff = rate = 1
 bcmavecharge = (bcm1charge+bcm2charge)/2.         # !!! Average over BCMs !!!
 bmcur        = (bmcur1+bmcur2)/2.
 
 thetacrad    = thetac/radcon # converting central angle to radian 
+
 
 #print (thetacrad)
 dep          = (delup-deldown)/100.*hsec
@@ -70,11 +88,11 @@ with open ('/w/hallc-scifs17exp/xem2/abishek/monte-carlo/mc-reweight/input/targe
             aerial_density = float(data[5])
 
             #print (data[0], data[1], data[2], data[3], data[4], data[5])
-
+outputName = input(" What is your MC RootFile Name? ")
 #======================================              ===============================================
 #     laoding output file from rc-extrnal to calculate radiative correction by linear interpolation #                                 
 #======================================              ================================================
-ebeam, wsqr, theta, x_sec, radCorrfactor = np.loadtxt('/w/hallc-scifs17exp/xem2/abishek/monte-carlo/mc-reweight/input/rad-corr/carbon_21_deg.dat', delimiter = '\t', unpack = True)
+ebeam, wsqr, theta, x_sec, radCorrfactor = np.loadtxt('/w/hallc-scifs17exp/xem2/abishek/monte-carlo/rc-externals/output/rad-corr-data/%s_21_deg.dat' %(outputName), delimiter = '\t', unpack = True)
 
 
 xt = R.TGraph2D() # here I creating Object for x-sec 
@@ -91,7 +109,10 @@ lumdata = (aerial_density*6.022137e-10/at_mass)*(bcmavecharge/1.602177e-13)
 #=====================   ========================
 #        Reading the montecarlo rootfile        #
 #=====================   ========================
-fName = "/w/hallc-scifs17exp/xem2/abishek/monte-carlo/mc-single-arm/worksim/carbon_5p1.root"
+
+fName = "/w/hallc-scifs17exp/xem2/abishek/monte-carlo/mc-single-arm/worksim/%s_%s.root" %(outputName,str(pcen).replace('.','p'))
+
+print ("your output file name is: %s_%s.root " %(outputName,str(pcen).replace('.','p')))
 
 f = R.TFile(fName,"READ")
 t = f.Get("h1411")
@@ -103,7 +124,7 @@ print (nentries)
 #     output Root Tree                       #
 #=================     =======================
 
-file = R.TFile("carbon_5p1.root","RECREATE") ## this is output rootfile
+file = R.TFile("%s_%s.root" %(outputName,str(pcen).replace('.','p')),"RECREATE") ## this is output rootfile
 tree = R.TTree("tree", "tree")
 
 xfoc       = array('d', [0])
@@ -234,9 +255,9 @@ for entry in range(nentries):
 
     w2[0]       = mp2 + 2.*mp*nu-q2[0]
 
-    eff_cer     = 0.998
+    eff_cer     = 1 # 0.998 Replacing by 1 coz we r correcting our data
 
-    eff_cal     = 0.96503+0.75590e-01*hse[0]-0.65283e-01*hse[0]**2 + 0.26938e-01*hse[0]**3-0.53013e-02*hse[0]**4+0.39896e-03*hse[0]**5
+    eff_cal     = 1 #0.96503+0.75590e-01*hse[0]-0.65283e-01*hse[0]**2 + 0.26938e-01*hse[0]**3-0.53013e-02*hse[0]**4+0.39896e-03*hse[0]**5
 
     dt          = thetaini - thetacrad
 
@@ -250,7 +271,7 @@ for entry in range(nentries):
 
     tree.Fill()
 
-    if abs(xptarini[0])< dxp and abs(yptarini[0])< dyp and delini[0] > deldown and delini[0] < delup and born_val > 0:
+    if abs(xptarini[0])< dxp and abs(yptarini[0])< dyp and delini[0] > deldown and delini[0] < delup and born_val >= 0:
         sigave  = sigave + born_val  
         ngen    = ngen + 1
 
@@ -265,4 +286,10 @@ lumfract        = lumdata/lummc
 fract           = lumdata*phase_space/ngen/1000.00 
 
 print (" Scale factor for MC ", fract)
+
+with open("%s_%s.txt" %(outputName, str(pcen).replace('.','p')), 'w') as fout:
+    fout.write(str(fract))
+          
+
 print ('\nThe analysis took %.3f minutes\n' % ((time.time() - startTime) / (60.)))  
+
