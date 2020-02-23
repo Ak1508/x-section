@@ -106,23 +106,23 @@ for i in range(len(ebeam)):
 
 lumdata = (aerial_density*6.022137e-10/at_mass)*(bcmavecharge/1.602177e-13)
 
-#=====================   ========================
-#        Reading the montecarlo rootfile        #
-#=====================   ========================
+# =============================================
+#        Reading the Monte-Carlo rootfile    #
+# =============================================
 
 fName = "/w/hallc-scifs17exp/xem2/abishek/monte-carlo/mc-single-arm/worksim/%s_%s.root" %(outputName,str(pcen).replace('.','p'))
 
 print ("your output file name is: %s_%s.root " %(outputName,str(pcen).replace('.','p')))
 
-f = R.TFile(fName,"READ")
-t = f.Get("h1411")
+f        = R.TFile(fName,"READ")
+t        = f.Get("h1411")
 nentries = t.GetEntries()
 
 print (nentries)
 
-#==================    =======================
-#     output Root Tree                       #
-#=================     =======================
+#=========================================
+#     output Root Tree                 #
+#================ ========================
 
 file = R.TFile("%s_%s.root" %(outputName,str(pcen).replace('.','p')),"RECREATE") ## this is output rootfile
 tree = R.TTree("tree", "tree")
